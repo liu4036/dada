@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="UTF-8">
+        <title>canvas 1</title>
+        <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        </style>
+    </head>
+
+    <body>
+        <canvas width=500 height=500>
+            您的浏览器不支持canvas标签，请更换浏览器！！！
+        </canvas>
+    </body>
+    <script type="text/javascript" src="common.js"></script>
+    <script type="text/javascript">
+    //获取canvas标签 也认为是获取画布
+    var canvas = document.querySelector("canvas");
+    var ctx = canvas.getContext("2d");
+    canvas.width = document.documentElement.clientWidth;
+    canvas.height = document.documentElement.clientHeight;
+
+    function Ball(ctx, r, x, y, color) {
+        this.ctx = ctx;
+        this.cw = this.ctx.canvas.width;
+        this.ch = this.ctx.canvas.height;
+        this.r = r || this.rand(10, 30);
+        this.x = x || this.rand(this.r, this.cw - this.r);
+        this.y = y || this.rand(this.r, this.ch - this.r);
+        this.color = color || this.randColor(true);
+        this.speedX = this.rand(-5, 20);
+        this.speedY = this.rand(-5, 30);
+    }
+    Ball.prototype.draw = function() {
+        this.ctx.beginPath();
+        this.ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2, false);
+        this.ctx.fillStyle = this.color;
+        this.ctx.fill();
+    }
+    Ball.prototype.move = function() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x + this.r >= this.cw || this.x - this.r <= 0) {
+            this.speedX *= -1;
+        }
+        if (this.y + this.r >= this.ch || this.y - this.r <= 0) {
+            this.speedY *= -1;
+        }
+        this.draw();
+    }
+    Ball.prototype.randColor = function(isAlpha) {
+        var a = this.rand(0, 255);
+        var b = this.rand(0, 255);
+        var c = this.rand(0, 255);
+        if (a == 255 && b == 255 && c == 255) {
+            return this.randColor(isAlpha);
+        }
+        if (isAlpha) {
+            return "rgba(" + a + "," + b + "," + c + "," + (Math.random() + 0.1) + ")";
+        }
+        return "rgb(" + a + "," + b + "," + c + ")";
+    }
+    Ball.prototype.rand = function(min, max) {
+        return parseInt(Math.random() * (max - min)) + min;
+    }
+    var balls = [];
+    for (var i = 0; i < 200; i++) {
+        var ball = new Ball(ctx);
+        balls.push(ball);
+    }
+
+    // ball.move();
+    // setInterval(function() {
+    //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    //     for (var i = 0; i < balls.length; i++) {
+    //         balls[i].move();
+    //     }
+    // }, 20);
+    function _move() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (var i = 0; i < balls.length; i++) {
+            balls[i].move();
+        }
+        requestAnimationFrame(_move);
+    }
+    _move();
+    </script>
+
+</html>

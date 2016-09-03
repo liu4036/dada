@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta name="viewport" content="width=device-width,user-scalable=no">
+        <title></title>
+        <style type="text/css" media="screen">
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+        </style>
+    </head>
+
+    <body>
+        <canvas></canvas>
+    </body>
+    <script src="loading.js" type="text/javascript" charset="utf-8"></script>
+    <script type="text/javascript">
+
+    var canvas = document.querySelector("canvas");
+    var ctx = canvas.getContext("2d");
+    canvas.width = document.documentElement.clientWidth;
+    canvas.height = document.documentElement.clientHeight;
+    loading({
+        imgs: {
+        	"camera" : "imgs/camera.png",
+            "bg": "imgs/background.png",
+            "plane": "imgs/plane.png",
+            "enemy1": "imgs/enemy1.png",
+            "enemy2": "imgs/enemy2.png",
+            "enemy3": "imgs/enemy3.png",
+            "bullet" : "imgs/bullet1.png"
+        },
+        done: function(imgs) {
+            main(imgs);
+        }
+    });
+    //入口函数
+    function main(imgs) {
+        var cw = ctx.canvas.width,
+            ch = ctx.canvas.height;
+
+
+
+        var bgObj = {
+            y: 0,
+            img: imgs.bg,
+            draw: function() {
+                ctx.drawImage(this.img, 0, this.y, cw, ch);
+                ctx.drawImage(this.img, 0, this.y - ch, cw, ch);
+            },
+            move: function() {
+                var that = this;
+                that.y++;
+                if (that.y - ch == 0) {
+                    that.y = 0;
+                }
+                that.draw();
+            }
+        };
+        //己方飞机对象
+        var mine = {
+            img: imgs.plane,
+            w: imgs.plane.width / 5,
+            h: imgs.plane.height,
+            x: (cw - imgs.plane.width / 5) / 2,
+            y: ch - imgs.plane.height,
+            imgStartX: 0,
+            draw: function(frameNum) {
+                if (frameNum % 3 == 0) {
+                    this.imgStartX = this.imgStartX == 0 ? this.w : 0
+                }
+                ctx.drawImage(this.img, this.imgStartX, 0, this.w, this.h, this.x, this.y, this.w, this.h);
+            }
+        };
+        function attackCheck(){
+            for(var i=0;i<enemys.length;i++){
+                var e = enemys[i];
+                var l1 = e.x,
+                    r1=l1+e.w,
+                    t1=e.y,
+                    b1=t1+e.h;
+                for(var j=0;j<bullets.length;j++){
+                    var b = bullets[j];
+                    var l2=b.x,
+                        r2=l2+b.w,
+                        t2=b.y,
+                        b2=t2+b.h;
+                    if(l2>l1 && r2<r1 && b2<b1 && t2>t1){
+                        // console.log("打中")
+                        e.blood -= b.value;
+                        console.log(e.blood)
+                        if(e.blood <= 0){
+                            enemys.splice(i,1);
+                            bullets.splice(j,1);
+                        }
+                        bullets.splice(j,1);
+                        j--;
+                    }
+                }
+            }
+        }
+
+
+        document.addEventListener("touchstart", function(ev) {
+            if (ev.touches.length == 1) {
+                var tx = ev.touches[0].clientX,
+                    ty = ev.touches[0].clientY;
+                if(ctx.isPointInPath(tx,ty)){//如果为true  则代表点击了相机图标
+                	//toDataURL(type)
+                		console.log( canvas.toDataURL())
+                		window.open( canvas.toDataURL() );
+
+                };
+                var disX = tx - mine.x,
+                    disY = ty - mine.y;
+                document.addEventListener("touchmove", function(e) {
+                    var mx = e.touches[0].clientX - disX,
+                        my = e.touches[0].clientY - disY;
+                    if (mx <= 0) {
+                        mx = 0;
+                    }
+                    if (mx >= cw-disX) {
+
+                        mx = cw-disX-3;
+                    }
+                    if (my <= 0) {
+                        my = 0;
+                    }
+                    if (my >= ch - mine.h) {
+                        my = ch - mine.h;
+                    }
+                    mine.x = mx, mine.y = my;
+                    mine.draw();
+                })
+            }
+        });
+
+        function rand(min, max) {
+            return parseInt(Math.random() * (max - min + 1)) + min;
+        }
+        //敌人飞机
+        function Enemy() {
+            var r = rand(0, 10);
+            this.img = imgs.enemy1;
+            var num = 5;
+            this.speed = 3;
+            this.blood = 2;
+            if (r == 10) {
+                this.img = imgs.enemy3;
+                num = 10;
+                this.speed = 1;
+                this.blood = 20;
+            } else if (r >= 8 && r < 10) {
+                this.img = imgs.enemy2;
+                num = 6;
+                this.speed = 2;
+                this.blood = 12;
+            }
+            this.startX = 0;
+            this.w = this.img.width / num;
+            this.h = this.img.height;
+            this.x = rand(this.w / 2, cw - this.w / 2);
+            this.y = -this.h;
+
+            // this.draw();
+        };
+
+        Enemy.prototype.draw = function() {
+            this.move()
+            ctx.drawImage(this.img, this.startX, 0, this.w, this.h, this.x, this.y, this.w, this.h);
+        };
+        Enemy.prototype.move = function() {
+            this.y+= this.speed;
+        };
+        //子弹构造函数
+        function Bullet() {
+            this.img = imgs.bullet;
+            this.w = this.img.width;
+            this.h = this.img.height;
+            this.x = mine.x + mine.w/2 - this.img.width/2;
+            this.y = mine.y - this.img.height;
+            this.speed = 8;
+            this.value = 1;
+        };
+        Bullet.prototype.move = function() {
+            this.y -= this.speed;
+        };
+        Bullet.prototype.draw = function() {
+            this.move()
+            ctx.drawImage(this.img,this.x,this.y);
+        };
+        var frameNum = 0;
+        var enemys = [];
+        var bullets = [];
+        function animation() {
+            frameNum++;
+            bgObj.move();
+            mine.draw(frameNum);
+             attackCheck();
+            for(var i=0;i<enemys.length;i++){
+                var enemy = enemys[i];
+                enemy.draw();
+                if(enemy.y>=ch){
+                    enemys.splice(i,1);
+                    i--;
+                }
+            }
+            for(var i=0;i<bullets.length;i++){
+                var bullet = bullets[i];
+                bullet.draw();
+                if(bullet.y-bullet.h<=0){
+                    bullets.splice(i,1);
+                    i--;
+                }
+            }
+
+            if(frameNum%40==0){
+                var em = new Enemy();
+                enemys.push(em);
+            }
+            if(frameNum%10==0){
+                var bullet = new Bullet();
+                bullets.push(bullet);
+            }
+
+            ctx.drawImage(imgs.camera,0,0,512,512,10,10,50,50);
+            //ctx.isPointInPath(x,y);
+            ctx.beginPath();
+            ctx.rect(10,10,50,50);
+            ctx.strokeStyle = "rgba(0,0,0,0)"
+            ctx.stroke();
+
+            requestAnimationFrame(animation);
+        }
+        animation();
+    }
+
+
+       </script>
+
+</html>
